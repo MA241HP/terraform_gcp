@@ -1,45 +1,36 @@
-name: 'Terraform Workflow'
+name: Terraform Google Cloud
 
 on:
   push:
     branches:
-      - main  # Trigger the workflow on push to main branch
-  pull_request:
-    branches:
-      - main  # Trigger the workflow on pull requests targeting the main branch
+      - main
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    
     steps:
-      # Checkout the code from the repository
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      # Set up Terraform
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: '1.4.0'  # Use the version you prefer
+          terraform_version: '1.4.0'
 
-      # Authenticate to GCP using the service account
-      - name: Authenticate to Google Cloud
+      - name: Authenticate with Google Cloud
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS_JSON }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS_JSON_BASE64 }}  # Use the base64 secret
         run: |
-          echo "${{ secrets.GCP_CREDENTIALS_JSON }}" > ${HOME}/gcloud.json
-          gcloud auth activate-service-account --key-file=${HOME}/gcloud.json
-          gcloud config set project <your-gcp-project-id>
+          echo "${{ secrets.GCP_CREDENTIALS_JSON_BASE64 }}" | base64 --decode > $HOME/gcloud.json
+          gcloud auth activate-service-account --key-file=$HOME/gcloud.json
+          gcloud config set project sonorous-guide-432911-t1  # Make sure this project ID matches
 
-      # Initialize Terraform
       - name: Terraform Init
         run: terraform init
 
-      # Plan the Terraform changes
       - name: Terraform Plan
         run: terraform plan
 
-      # Apply the Terraform configuration (optional - can be manual)
       - name: Terraform Apply
         run: terraform apply -auto-approve
-        # Use `if: github.event_name == 'push'` to apply only on push events, not PRs
